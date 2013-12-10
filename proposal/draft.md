@@ -3,7 +3,7 @@ Private Extension Methods
 
 * Document Number: NXXX=YY-ZZZZ
 * Date: 2013-12-08
-* Programming Language C++, Language Working Group
+* Programming Language C++, Language Evolution Working Group
 * Reply-to: Matthew Fioravante <fmatthew5876@gmail.com>
 
 Introduction
