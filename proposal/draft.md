@@ -117,7 +117,7 @@ in order to implement the language.
 Let us examine this table and try to deconstruct which aspects
 required in the class definition are actually
 part of the class interface and which are implementation details.
-First, the all of the public and protected aspects must be a part
+First, the public and protected aspects must be a part
 of the interface because they are directly exposed to class user and
 the child class who inherits.
 Private virtual methods are also part of the interface to the child class
@@ -142,7 +142,7 @@ at the expense of run time efficiency.
 Friend declarations also are not technically part of the interface.
 However, allowing friend declarations to be declared anywhere would 
 make it very easy for users to abuse friends in order to break access
-control. This proposal does not address any aspects of the controversial
+control. This proposal does not address any aspects of the
 friend feature and we will not speak of it again.
 
 The leaves us with the non-virtual private methods and static private methods.
@@ -389,7 +389,7 @@ It would look like this:
 The question of course is which keyword to use. Here are some ideas:
 
 * explicit: The explicit keyword could be reused here and it even
-    has seems somewhat natural as you are "explicitly" defining
+    seems somewhat natural as you are "explicitly" defining
     a new member function. All of the current uses of this keyword
     are related to type conversions and it would be better to keep
     it this way for consistency and ease of understanding.
@@ -425,7 +425,8 @@ For example:
     
     static void Foo::priv1(); <-Static private extension method
 
-This would be a viable approach. Users who want to have file scoped
+This would be a viable approach and has even less impact on the
+standard then the current proposal. Users who want to have file scoped
 private extension methods can still use anonymous namespaces.
 We have opted against this approach for now as we believe it will lead
 to confusion as the already encumbered static keyword will now have
@@ -438,6 +439,6 @@ Thank you to everyone on the std proposals forum for feedback and suggestions.
 
 References
 ==================
-* <a name="Lakos01"></a>Lakos, John. *Large-Scale C++ Software Design*, Addison-Wesley, July 1996, ISBN 0201633620.
+* <a name="Lakos01"></a>[Lakos01] Lakos, John. *Large-Scale C++ Software Design*, Addison-Wesley, July 1996, ISBN 0201633620.
 * <a name="KDEABI"></a>[KDEABI] *Policies/Binary Compatibility Issues With C++ - KDE TechBase*, Available online at <http://techbase.kde.org/Policies/Binary_Compatibility_Issues_With_C++>.
 

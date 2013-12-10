@@ -4,7 +4,7 @@
 <li>Document Number: NXXX=YY-ZZZZ</li>
 <li>Date: 2013-12-08</li>
 <li>Programming Language C++, Language Evolution Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#105;l&#116;&#x6F;:&#102;&#109;&#x61;t&#x74;&#104;&#x65;&#119;&#53;&#56;7&#54;&#64;g&#x6D;&#97;&#x69;&#x6C;&#x2E;&#x63;&#111;&#109;">&#102;&#109;&#x61;t&#x74;&#104;&#x65;&#119;&#53;&#56;7&#54;&#64;g&#x6D;&#97;&#x69;&#x6C;&#x2E;&#x63;&#111;&#109;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;a&#105;l&#x74;&#x6F;:&#102;&#109;&#97;&#x74;&#116;&#104;&#x65;w&#x35;&#56;&#55;&#x36;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;m">&#102;&#109;&#97;&#x74;&#116;&#104;&#x65;w&#x35;&#56;&#55;&#x36;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;m</a></li>
 </ul>
 
 <h1>Introduction</h1>
@@ -114,7 +114,7 @@ in order to implement the language.</p>
 <p>Let us examine this table and try to deconstruct which aspects
 required in the class definition are actually
 part of the class interface and which are implementation details.
-First, the all of the public and protected aspects must be a part
+First, the public and protected aspects must be a part
 of the interface because they are directly exposed to class user and
 the child class who inherits.
 Private virtual methods are also part of the interface to the child class
@@ -141,7 +141,7 @@ at the expense of run time efficiency.</p>
 <p>Friend declarations also are not technically part of the interface.
 However, allowing friend declarations to be declared anywhere would 
 make it very easy for users to abuse friends in order to break access
-control. This proposal does not address any aspects of the controversial
+control. This proposal does not address any aspects of the
 friend feature and we will not speak of it again.</p>
 
 <p>The leaves us with the non-virtual private methods and static private methods.
@@ -392,7 +392,7 @@ void Foo::_priv2(); //Compilation Error! _priv2() not found in class definition.
 
 <ul>
 <li>explicit: The explicit keyword could be reused here and it even
-has seems somewhat natural as you are "explicitly" defining
+seems somewhat natural as you are "explicitly" defining
 a new member function. All of the current uses of this keyword
 are related to type conversions and it would be better to keep
 it this way for consistency and ease of understanding.
@@ -429,7 +429,8 @@ for member functions to denote a static method.</p>
 static void Foo::priv1(); &lt;-Static private extension method
 </code></pre>
 
-<p>This would be a viable approach. Users who want to have file scoped
+<p>This would be a viable approach and has even less impact on the
+standard then the current proposal. Users who want to have file scoped
 private extension methods can still use anonymous namespaces.
 We have opted against this approach for now as we believe it will lead
 to confusion as the already encumbered static keyword will now have
@@ -442,6 +443,6 @@ different meanings for member functions and free functions.</p>
 <h1>References</h1>
 
 <ul>
-<li><a name="Lakos01"></a>Lakos, John. <em>Large-Scale C++ Software Design</em>, Addison-Wesley, July 1996, ISBN 0201633620.</li>
+<li><a name="Lakos01"></a>[Lakos01] Lakos, John. <em>Large-Scale C++ Software Design</em>, Addison-Wesley, July 1996, ISBN 0201633620.</li>
 <li><a name="KDEABI"></a>[KDEABI] <em>Policies/Binary Compatibility Issues With C++ - KDE TechBase</em>, Available online at <a href="http://techbase.kde.org/Policies/Binary_Compatibility_Issues_With_C++">http://techbase.kde.org/Policies/Binary_Compatibility_Issues_With_C++</a>.</li>
 </ul>
