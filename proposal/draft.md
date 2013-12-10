@@ -39,7 +39,7 @@ Analysis of the quality of encapsulation enabled by the C++ class model
 
 We will perform an analysis of encapsulation provided by the C++
 class mechanism.
-In C++, the system interface takes the form of a class definition.
+In C++, a system interface can take the form of a class definition.
 This class definition is normally written in a header
 file, in order to allow its use in multiple translation units.
 In order to maximize encapsulation, we must minimize the number
