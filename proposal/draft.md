@@ -9,7 +9,7 @@ Private Extension Methods
 Introduction
 =============================
 
-This proposal adds a new mechanism for declaring and defining non-virtual 
+This proposal adds a new mechanism for declaring non-virtual 
 private class methods and static private class methods outside of the
 class definition.
 
@@ -18,41 +18,40 @@ Impact on the standard
 
 This proposal is a core language extension. It does not require
 any new keywords. It proposes one additional syntax by reusing an existing
-keyword. The new feature does not break any legacy code. 
+keyword in a manner congruent with the keyword's original purpose.
+The new feature does not break any legacy code. 
 Some expressions which used to be a compilation error are now valid C++.
-This feature can be thought of as a steping stone on the road to
-modules in C++, but unlike modules will bring immediate benefit to
-C++ developers.
 
 Motivation: Problem Definition
 ================
 
-Good class design follows the principle of encapsulation. We wish to
-only expose the public aspects of our class in the interface 
-and hide the implementation details.
+Good class design follows the principle of encapsulation.
 The game of encapsulation is the game of hiding as many details
 as possible, exposing only the minimum of details required for the users
-of the interface. By minimizing the exposed information, we reduce
+to use the interface. By minimizing the exposed information, we reduce
 the complexity of our interface, making it easier to understand and use.
 We also give ourselves much more freedom and flexibility with
 implementation. Any class details not present in the interface can
 be changed without affecting the users of the interface.
 
-Analysis of Encapsulation in the C++ class model
+Analysis of the quality of encapsulation enabled by the C++ class model
 --------------------------------
 
-In C++, the class interface is manifest as the
-class definition. This class definition is normally written in a header
-file, in order to allow its use in multiple translation units. By
-minimizing the details in the class definition, we achieve better
-encapsultion and all of the benefits it brings.
+We will perform an analysis of encapsulation provided by the C++
+class mechanism.
+In C++, the system interface takes the form of a class definition.
+This class definition is normally written in a header
+file, in order to allow its use in multiple translation units.
+In order to maximize encapsulation, we must minimize the number
+of class details in the interface to the bare minimum required by
+the users of the class.
 
 The following table lists all of the aspects that make up a class. It
-lists whether or not they are required to be in the class defintion.
-We also mention which aspects are required by users of the class
-and child classes which will inherit. Finally, the last column
-describes when and where the aspect is required to be known
-by the compiler in order to implement the language.
+lists whether or not they are required to be in the class definition.
+The next 2 columns describe how each aspect is used by the programmer
+using the class directly and the child class inheriting from it. The
+last column describes when the compiler needs the aspect to be visible
+in order to implement the language.
 
 <table border="1">
 	<tr><th>#</th><th>Aspect</th><th>Required in class definition?</th><th>User</th><th>Inheritor</th><th>Compiler</th></tr>
@@ -115,44 +114,49 @@ by the compiler in order to implement the language.
 	</tr>
 </table>
 
-Let us examine this table and try to deconstruct which aspects should
-be part of the class interface and which are implementation details.
-First, we can remove all aspects which are used by either the user
-or the inheritor as they are obviously part of the interface. This
-leaves us with the following.
+Let us examine this table and try to deconstruct which aspects
+required in the class definition are actually
+part of the class interface and which are implementation details.
+First, the all of the public and protected aspects must be a part
+of the interface because they are directly exposed to class user and
+the child class who inherits.
+Private virtual methods are also part of the interface to the child class
+because the child class may choose to override them.
 
-* Private data member defintions
+Now we are left with the following:
+
+* Private data member definitions
+* Friend declarations
 * Private non-virtual method declarations
 * Private static method declarations
-* Friend declarations
-* All member function definitions
 
-The private data members are required by the compiler in order to
-compute the size of the class object. The size is needed when
-a new object is to be allocated on the stack or the heap. Therefore,
-for practical reasons, we will also consider the private data members
-as part of the class interface.
+Private data members are not technically part of the interface as
+they cannot be accessed by users or child classes.
+Here we run into practical considerations. The compiler needs to know
+the size of the entire object in order to create instances of it.
+The size cannot be computed without seeing all of the data members,
+regardless of access control. Developers who wish to increase encapsulation
+by hiding the private data members can use the PIMPL idiom
+at the expense of run time efficiency.
 
-Friend declarations technically do not need to be known by the user,
-the inheritor, or even the compiler at the class definition.
+Friend declarations also are not technically part of the interface.
 However, allowing friend declarations to be declared anywhere would 
 make it very easy for users to abuse friends in order to break access
-control. This proposal does not address any aspects of the controversal
+control. This proposal does not address any aspects of the controversial
 friend feature and we will not speak of it again.
 
-The leaves us with the private methods (non-virtual and static) and the
-member function defintions, which are already not required to be present
-in the definition. The users (user and inheritor) obviously do not need
-to know of the signatures, much less the existance of private methods.
-The compiler also does not need to know of the existance of private
+The leaves us with the non-virtual private methods and static private methods.
+The direct users and child classes cannot call private methods so they
+do not need to see their signatures, much much less know of their existence.
+The compiler also does not need to know of the existence of private
 methods until they are called. On all major platforms, changing
 the non-virtual private methods (which are not called by inline functions)
 does not affect the ABI of the class itself
 \[[KDEABI](#KDEABI)\].
 
-Thus, we conclude that non-virtual private methods declarations and static private method
-declarations are not a part of the class interface. Therefore, following
-the guidelines of encapsulation, they do not belong the class definition.
+We conclude that non-virtual private method and static private method
+declarations are not a part of the class interface and thus should not
+be required in the class definition.
 
 Practical Concerns
 ---------------------
@@ -164,23 +168,22 @@ declarations in the class definition.
 * Whenever the class developer adds, removes, or changes the private method
     signatures, all users of the class *must* recompile. Large C++ applications
     already have prohibitively long compilation times. Waiting for compilation
-    wastes a lot of programmer time and reduces productivity. Indeed
-    many techniques have been developed such as PIMPL which sacrifice
-    runtime efficiency in the name of reducing compile times. Whole
-    books such as \[[Lakos01](#Lakos01)\] have been written
+    wastes a lot of programmer time and reduces productivity.
+    Whole books such as \[[Lakos01](#Lakos01)\] have been written
     with large sections dedicated to techniques for reducing compile times.
     Compilation time in C++ is a big problem that needs to be addressed.
-    This proposal provides one way to greatly reducing compile times for many large projects.
+    This proposal is one major step in the reduction of programmer
+    time wasted waiting for compilation during development.
     Of all of the issues given here, this one is the most dire.
 * All of the symbols used in private method signatures must be exposed
     to the clients of the class. This matters for shared libraries
-    where we wish to minimize symbol dependencies for load time and
-    avoiding name clashes. While some platform dependent techniques
+    where we wish to minimize symbol dependencies to optimize library load time and
+    avoid symbol name clashes. While some platform dependent techniques
     such as visibility control can be used to mitigate the symbol
     pollution, this requires extra work from the programmer which he
     would not need to do at all if the private method signature was
-    safetly encapsulated within the project's internal source files.
-* File scope symbols (static keyword, anonymous namespaces) cannot be
+    safely encapsulated within the project's internal source files.
+* File scope symbols (i.e static and anonymous namespaces) cannot be
     used in private method signatures, even if those private methods
     are only called within one translation unit. File scope symbols
     are another good technique for reducing the symbols exported by
@@ -191,27 +194,29 @@ declarations in the class definition.
     platform to require different private method signatures than
     another. Because these signatures are required to be in the
     definition, we are then forced to also include all of the
-    messy conditional compilation techniques such as `#ifdef`.
+    messy conditional compilation details into the header files.
 
 
 We propose that private non-virtual
 methods and private static methods should be able to be declared outside
 of the class definition. This change does not break encapsulation
-because the methods are private, infact it improves encapsulation
+because the methods are private, in fact it improves encapsulation
 for reasons previously stated.
 We believe this feature could also be another step towards modules in C++.
 
 As a side note, some programming languages provide a mixin feature
-which allows programmers to add public methods and possibly data
-members to classes. We are not proposing or even endorsing any form
-of mixin here. As has been stated, private method signatures are
-implementation details.
+which allows programmers to reopen a class and extend its interface
+arbitrarily.
+We are not proposing or even endorsing any form
+of mixin here. Adding, removing, or changing private methods does
+not change the interface of the class.
 
 High Level Description
 ====================
 
-The technical specification for this proposal is simple. Just allow the
-programmer to declare and define additional class member functions
+The basic idea behind this proposal is simple. Just allow the
+programmer to declare additional class non-virtual private methods
+and static private methods
 which are not present in the class definition. We call these additional
 methods *private extension methods*.
 
@@ -220,11 +225,15 @@ Here is an example:
     //foo.hh
     class Foo {
       public:
+        Foo();
         void pub1();
         void pub2();
       private:
-        //private method provided in the class definition
+        //private method declared within the class definition
         void _priv1();
+        
+        int _i;
+        int _j;
     };
 
     //Forward declaration of a private extension method
@@ -241,24 +250,39 @@ Here is an example:
       /* function body */
     }
 
-    //A new private extension method, using the static keyword for file scope.
+    //A new file scoped private extension method.
     static void Foo::_priv3() {
+      _i = 3;
+    }
+
+    //Another file scoped private extension method.
+    namespace {
+      static void Foo::_priv4() {
+        _priv3();
+        _j = _i++;
+      }
     }
 
     //Definition of Foo::pub1()
     void Foo::pub1() {
       _priv1();
-      _priv3();
+      _priv4();
     }
 
-Any class member function which has been declared but not found in the class definition will
+    //A private extension method constructor
+    Foo::Foo(int i, int j) : _i(i), _j(j) {}
+
+    //Public constructor delegates to the private extension constructor
+    Foo::Foo() : Foo(0, 0) {}
+
+Any class method which has been declared but not found in the class definition will
 be implicitly given private access control. For this reason, all
-class member function declarations must require the class definition
+class method declarations will require the class definition
 to been previously seen.
 
 The following would be a compilation error:
 
-    void Foo::_priv(); //<-Error: class defintion not visible here!
+    void Foo::_priv(); //<-Error: class definition not visible here!
 
     class Foo {
     };
@@ -267,7 +291,7 @@ The one issue that arises from the previous example is how to declare a static p
 extension method. Within the class definition we prefix the
 method with the static keyword. Prefixing an extension
 method with the static keyword outside of class scope will
-not define a static class method but instead define a private method
+not define a static class method but instead define a private extension method
 with static linkage.
 
 In order to resolve this issue, we propose one more change. We
@@ -275,7 +299,7 @@ will allow the programmer to supply the static keyword after
 the function declaration. Within the class definition, this will
 have the same effect as putting the static keyword before the
 declaration. Outside of the class definition, prefixing with
-static will denote static linkage, while suffixing will
+static will denote file scope, while suffixing will
 denote a static private extension method.
 
 Some examples:
@@ -287,18 +311,25 @@ Some examples:
       private:
         static void f3(); //<- static private method
         void f4() static; //<- static private method
+
+        void f5(); //<- private method
+        void f6(); //<- private method
     };
 
-    void Foo::f5(); //<- private extension method
-    static void Foo::f6(); //<- private extension method with static linkage
-    void Foo::f7() static; //<- static private extension method
-    static void Foo::f8() static; //<- static private extension method with static linkage
+    void Foo::f7(); //<- private extension method
+    static void Foo::f8(); //<- file scope private extension method
+    void Foo::f9() static; //<- static private extension method
+    static void Foo::f10() static; //<- file scope static private extension method
 
-    static void bar(); //<-free function with static linkage
+    static void bar(); //<-file scope free function
     void baz() static; //<-Compilation Error! Static suffix can only be used with class methods!
 
     void Foo::f1() static {
       /* f1()'s definition. Note that we can optionally include the static keyword here as a suffix.*/
+    }
+    static void Foo::f5() { //<-Compilation Error! Class methods declared in the class definition cannot have file scope!
+    }
+    void Foo::f6() static { //<-Compilation Error! f6() was declared to be a non-static class method!
     }
 
 Technical Specification
@@ -306,17 +337,17 @@ Technical Specification
     
 In summary, this proposal makes the following changes to the standard:
 
-* Allow user to declare class methods which are
+* Allow the programmer to declare class methods which are
     not present in the class definition. All of these methods will
     have private access control.
-* In the class definition, allow the user to provide the static keyword
+* In the class definition, allow the programmer to provide the static keyword
     after a method declaration, with the same meaning as if it appeared
     before the method declaration.
-* If a static method is declared in the class definition, allow the user
+* If a static method is declared in the class definition, allow the programmer
     to optionally include the static keyword after the method signature
     in the method definition. This keyword will have no effect.
 * If a non-static method is declared in the class definition, adding
-    the static keyword after the method signature in the method defintion
+    the static keyword before or after the method signature in the method definition
     will result in a compiler error.
 * If a class method is declared and is not present in the class definition, 
     the user may add the static keyword before the method signature to give
@@ -359,20 +390,20 @@ The question of course is which keyword to use. Here are some ideas:
 
 * explicit: The explicit keyword could be reused here and it even
     has seems somewhat natural as you are "explicitly" defining
-    a new member function.
-    This keyword however is meant to be used with
-    constructors, do we really want another overloaded keyword like
+    a new member function. All of the current uses of this keyword
+    are related to type conversions and it would be better to keep
+    it this way for consistency and ease of understanding.
+    Do we really want another overloaded keyword like
     static in the language?
-* private: The private keyword seems like a natural choice. However
-    we don't like this keyword for one big reason, its confusing. 
-    New users will undoubtably ask why you can write a private
+* private: The private keyword seems like a natural choice but it
+    is a bad choice because it is confusing.
+    New users will undoubtedly ask why you can write a private
     extension method but not a public or protected one. Someone in
     the future might even be tempted to write a proposal similar to
-    this one allowing public and protected extension methods. Such a
-    proposal would be a very bad idea as it would destroy encapsulation.
+    this one allowing public and protected extension methods. 
 * [[attribute]]: This is almost like inventing a new keyword, except
-    you're cheating by instead using a generalized attribute. We do
-    not believe attributes should be used for back door keywords 
+    you're cheating by instead using a generalized attribute.
+    Attributes should be used for back door keywords 
     to implement new language features.
 * Invent a new keyword: This probably doesn't even need to be said.
     New keywords are something that should only be introduced if
@@ -395,9 +426,9 @@ For example:
     static void Foo::priv1(); <-Static private extension method
 
 This would be a viable approach. Users who want to have file scoped
-private extension methods can use anonymous namespaces.
+private extension methods can still use anonymous namespaces.
 We have opted against this approach for now as we believe it will lead
-to confusion as the already emcumbered static keyword will now have
+to confusion as the already encumbered static keyword will now have
 different meanings for member functions and free functions.
 
 Acknowledgements
