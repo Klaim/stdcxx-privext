@@ -621,20 +621,20 @@ Public header file:
       private:
         int _i;
 
-        class XHelper;
+        struct XHelper;
     };
 
 Private implementation:
 
-    class X::XHelper {
+    struct X::XHelper {
       static void doWorkHelper(X& x) { //<-PEM
         x._i = 42;
       }
 
-      class XHelper2;
+      struct XHelper2;
     };
 
-    class X::XHelper::XHelper2 {
+    struct X::XHelper::XHelper2 {
       static void doMoreWorkHelper(X& x) { //<-PEM
         x._i++;
       }
