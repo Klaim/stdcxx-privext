@@ -4,7 +4,7 @@
 <li>Document Number: NXXX=YY-ZZZZ</li>
 <li>Date: 2013-12-08</li>
 <li>Programming Language C++, Language Evolution Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;a&#105;l&#x74;&#x6F;:&#102;&#109;&#97;&#x74;&#116;&#104;&#x65;w&#x35;&#56;&#55;&#x36;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;m">&#102;&#109;&#97;&#x74;&#116;&#104;&#x65;w&#x35;&#56;&#55;&#x36;&#64;&#x67;&#x6D;&#x61;&#105;&#108;&#x2E;&#x63;&#x6F;m</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#x61;i&#108;&#x74;&#x6F;:&#x66;&#x6D;&#x61;&#x74;&#x74;&#x68;e&#119;&#x35;&#56;&#x37;&#x36;&#64;&#x67;&#x6D;&#97;&#x69;l&#46;c&#111;&#109;">&#x66;&#x6D;&#x61;&#x74;&#x74;&#x68;e&#119;&#x35;&#56;&#x37;&#x36;&#64;&#x67;&#x6D;&#97;&#x69;l&#46;c&#111;&#109;</a></li>
 </ul>
 
 <h1>Introduction</h1>
@@ -36,7 +36,7 @@ be changed without affecting the users of the interface.</p>
 
 <p>We will perform an analysis of encapsulation provided by the C++
 class mechanism.
-In C++, the system interface takes the form of a class definition.
+In C++, a system interface can take the form of a class definition.
 This class definition is normally written in a header
 file, in order to allow its use in multiple translation units.
 In order to maximize encapsulation, we must minimize the number
@@ -216,179 +216,469 @@ not change the interface of the class.</p>
 programmer to declare additional class non-virtual private methods
 and static private methods
 which are not present in the class definition. We call these additional
-methods <em>private extension methods</em>.</p>
+class methods <em>private extension methods (PEM)</em>  and <em>private static extension member functions (PSEMF)</em>.</p>
 
-<p>Here is an example:</p>
+<h2>Declaring private extension methods</h2>
 
-<pre><code>//foo.hh
-class Foo {
+<p>In order to declare a PEM, we simply declare
+a new class member function outside of the class definition 
+and prefix it with the private keyword:</p>
+
+<p>foo.hh</p>
+
+<pre><code>class Foo {
   public:
-    Foo();
-    void pub1();
-    void pub2();
+    int pubf(); //&lt;-public member function
   private:
-    //private method declared within the class definition
-    void _priv1();
-
     int _i;
-    int _j;
+
+    int _privf(); //&lt;-private member function
 };
-
-//Forward declaration of a private extension method
-void Foo::_priv2();
-
-//Inlined public method calls the private extension method
-inline void Foo::pub2() { _priv2(); }
 </code></pre>
 
-<!-- -->
+<p>foo.cc</p>
 
-<pre><code>//foo.cc
-//Definition of _priv1()
-void Foo::_priv1() {
-  /* function body */
+<pre><code>//Private extension method _priv_extf()
+private void Foo::_priv_extf() {
+  _i++;
 }
 
-//A new file scoped private extension method.
-static void Foo::_priv3() {
-  _i = 3;
+//Definition of pubf(). Calls our extension method.
+int Foo::pubf() {
+  _priv_extf();
+  return _privf();
 }
 
-//Another file scoped private extension method.
-namespace {
-  static void Foo::_priv4() {
-    _priv3();
-    _j = _i++;
-  }
+//Definition of _privf()
+int Foo::_privf() {
+   return _i * 2;
+}
+</code></pre>
+
+<p>We can also declare PEMs in header files.
+This allows us to separate the class implementation into multiple
+source files and share PEMs between them.
+The next example shows the possibilities.</p>
+
+<p>foo.hh (public header file, exposed to library users)</p>
+
+<pre><code>class Foo {
+  public:
+    int pub1();
+
+    int pubx();
+    int puby();
+  private:
+    int _x;
+    int _y;
+
+    int _priv1();
+};
+
+//Declare a PEM in the class header file.
+//In this case, the effect is the same as declaring it within the class
+//definition. Using an extension method here instead of declaring in the
+//class definition is merely a stylistic choice.
+Foo::_priv2();
+
+//pub2() is inlined and calls _priv1() and _priv2(), so we need to see
+//both of them at this point. This can be accomplished by including them
+//within the class definition or declaring an extension method as shown
+//by the examples of _priv1() and _priv2().
+inline int pub2() { return _priv1() + _priv2(); }
+</code></pre>
+
+<p>foo_impl.hh (private header file)</p>
+
+<pre><code>//Here our private header file defines more extension methods
+private int Foo::_priv3();
+inline private int Foo::_priv4() { return _priv3() + 42; }
+</code></pre>
+
+<p>foo_x.cc (private implementation file)</p>
+
+<pre><code>//Another PEM defined only in this translation unit.
+//We should probably give this method internal linkage (see below).
+private int Foo::_transform_x() {
+  return _x * x + 50;
 }
 
-//Definition of Foo::pub1()
-void Foo::pub1() {
-  _priv1();
-  _priv4();
+//implementation of pubx()
+int Foo::pubx() {
+  return _transform_x() * _priv4();
 }
+</code></pre>
 
-//A private extension method constructor
-Foo::Foo(int i, int j) : _i(i), _j(j) {}
+<p>foo_y.cc (private implementation file)</p>
+
+<p>//implementation of puby()
+   int Foo::puby() {
+     return _y + _priv4();
+   }</p>
+
+<h2>Private Extension Constructors</h2>
+
+<p>We can also declare additional private constructors:</p>
+
+<pre><code>class Foo {
+  public:
+    Foo();
+};
+
+//PEM constructor
+private Foo::Foo(int i, int j) : _i(i), _j(j) {}
 
 //Public constructor delegates to the private extension constructor
 Foo::Foo() : Foo(0, 0) {}
 </code></pre>
 
-<p>Any class method which has been declared but not found in the class definition will
-be implicitly given private access control. For this reason, all
-class method declarations will require the class definition
-to been previously seen.</p>
+<p>Note that we cannot declare private extension default constructors, copy constructors, copy assignment,
+move constructor, move assignment, or destructors. All of the following are errors:</p>
 
-<p>The following would be a compilation error:</p>
+<pre><code>class Foo {};
 
-<pre><code>void Foo::_priv(); //&lt;-Error: class definition not visible here!
-
-class Foo {
-};
+private Foo::Foo(); //Error: Cannot declare a PEM default constructor!
+private Foo::Foo(const Foo&amp;); //Error: Cannot declare a PEM copy constructor!
+private Foo&amp; Foo::operator=(const Foo&amp;); //Error: Cannot declare a PEM copy assignment operator!
+private Foo::Foo(Foo&amp;&amp;); //Error: Cannot declare a PEM move constructor!
+private Foo&amp; Foo::operator=(Foo&amp;&amp;); //Error: Cannot declare a PEM move assignment operator!
+private Foo::~Foo(); //Error: Cannot declare a PEM destructor!
 </code></pre>
 
-<p>The one issue that arises from the previous example is how to declare a static private
-extension method. Within the class definition we prefix the
-method with the static keyword. Prefixing an extension
-method with the static keyword outside of class scope will
-not define a static class method but instead define a private extension method
-with static linkage.</p>
+<h2>Class Definition visibility and the private keyword</h2>
 
-<p>In order to resolve this issue, we propose one more change. We
-will allow the programmer to supply the static keyword after
-the function declaration. Within the class definition, this will
-have the same effect as putting the static keyword before the
-declaration. Outside of the class definition, prefixing with
-static will denote file scope, while suffixing will
-denote a static private extension method.</p>
+<p>Any class method which has been declared but not found in the class definition 
+requires the private keyword, otherwise a compiler error will ensue.
+Likewise any class method definition which has been previously
+declared in the class definition must not be prefixed by the private keyword.
+For this reason, all class method declarations will require the class definition
+to been previously seen.</p>
 
-<p>Some examples:</p>
+<p>The following are compilation errors:</p>
+
+<pre><code>private void Foo::_p1(); //&lt;-Error: class definition not visible here!
+
+class Foo {
+  void _p2();
+};
+
+void Foo::_p3(); //&lt;-Error: PEMs must use the private keyword!
+private void Foo::_p2() {} //&lt;-Error: member function definitions cannot use the private keyword!
+</code></pre>
+
+<h2>Static Member Functions</h2>
+
+<p>As was discussed earlier, static private member functions are also 
+implementation details and do not belong in the class definition.
+We can define static private extension member functions by adding the <code>static</code>
+keyword <em>after</em> the private keyword:</p>
 
 <pre><code>class Foo {
   public:
-    static void f1(); //&lt;- static public method
-    void f2() static; //&lt;- static public method
-  private:
-    static void f3(); //&lt;- static private method
-    void f4() static; //&lt;- static private method
-
-    void f5(); //&lt;- private method
-    void f6(); //&lt;- private method
+    static int sf();
 };
 
-void Foo::f7(); //&lt;- private extension method
-static void Foo::f8(); //&lt;- file scope private extension method
-void Foo::f9() static; //&lt;- static private extension method
-static void Foo::f10() static; //&lt;- file scope static private extension method
+private void Foo::_f1(); //&lt;-PEM
 
-static void bar(); //&lt;-file scope free function
-void baz() static; //&lt;-Compilation Error! Static suffix can only be used with class methods!
+private static int Foo::_f2() { return 42; } //&lt;-PSEMF
+int Foo::sf() { return _f2(); }
+</code></pre>
 
-void Foo::f1() static {
-  /* f1()'s definition. Note that we can optionally include the static keyword here as a suffix.*/
+<p>The <code>static</code> keyword must appear after <code>private</code>. The reason will be shown in the next section.</p>
+
+<h2>Internal Linkage</h2>
+
+<p>Most private extension methods are likely to be used only within one translation unit (TU). 
+Symbols used within only one TU can be given internal linkage. This reduces the number of symbols
+in the entire application and allows more aggressive optimizations. For example, the compiler can
+inline all calls and completely remove the symbol from the compiled binary.</p>
+
+<h3>The Static keyword</h3>
+
+<p>We would like to enable internal linkage for PEMs. This is also
+enabled by the <code>static</code> keyword, in the same manner as other symbols. To give
+internal linkage to a PEM, we include the <code>static</code> keyword
+<em>before</em> the <code>private</code> keyword.</p>
+
+<pre><code>class Foo {
+};
+
+private void Foo::_f1(); //&lt;-PEM
+private static void Foo::_f2(); //&lt;-PEM with internal linkage
+static private void Foo::_f3(); //&lt;-PSEMF
+static private static void Foo::_f4(); //&lt;-PSEMF with internal linkage
+</code></pre>
+
+<h3>Anonymous namespaces</h3>
+
+<p>The other method used in C++ to enable internal linkage is the use of anonymous name spaces.
+The use of anonymous namespace presents something of a conundrum for PEMs.
+Class methods always exist in the same namespace as the class itself. Declaring a PEM
+within an anonymous namespace would seem to be defining a method of a class within a different namespace
+as that of the class itself. We are opting to allow this feature, but are willing to forego it should
+the committee decide against it. We already have the static keyword for internal linkage so this is not a huge loss.</p>
+
+<pre><code>class Foo {
+};
+
+namespace {
+  private int Foo::_f1()
+};
+</code></pre>
+
+<p>We will require that the anonymous namespace is a member of the namespace of the class.</p>
+
+<pre><code>namespace A {
+  class X {};    
 }
-static void Foo::f5() { //&lt;-Compilation Error! Class methods declared in the class definition cannot have file scope!
+
+namespace A {
+  namespace {
+    private X::_a(); //&lt;-Ok, PEM for A::X.
+  }
+  namespace B {
+    namespace {
+      private X::_b(); //Error: Tried to declare a PEM for non-existent class A::B::X.
+    }
+  }
 }
-void Foo::f6() static { //&lt;-Compilation Error! f6() was declared to be a non-static class method!
+
+namespace C {
+  private X::_c(); //Error: Tried to declare a PEM for non-existent class C::X
+}
+
+private X::_d(); //Error: Tried to declare a PEM for non-existent class ::X
+</code></pre>
+
+<p>An ambiguity can result if the same name is used in the parent namespace and anonymous namespace.
+This can be resolved using a full qualification.</p>
+
+<pre><code>namespace A {
+  class X {};
+  namespace {
+    class X {};
+
+    private X::_a(); //Declares PEM for X within the anonymous namespace
+
+    private A::X::_a(); //Declares a PEM for A::X.
+  }
 }
 </code></pre>
 
-<h1>Technical Specification</h1>
+<h2>Class Templates and PEMs</h2>
+
+<p>Template classes are supported in the natural way:</p>
+
+<pre><code>template &lt;typename T&gt;
+class X {};
+
+template &lt;typename T&gt;
+private void X&lt;T&gt;::_f1(); //&lt;-PEM for class template
+
+template &lt;&gt;
+private void X&lt;int&gt;::_f2(); //&lt;-Specialization of PEM for X&lt;int&gt;
+</code></pre>
+
+<p>Explicit template instantiation of a class will instantiate all of it's member functions.
+This will recursively instantiate any PEMs called by those member functions.</p>
+
+<pre><code>template &lt;typename T&gt;
+class X {
+  public:
+    void f(); 
+};
+
+template &lt;typename T&gt;
+private void X&lt;T&gt;::_f1() { //&lt;-PEM for class template
+  /* stuff */
+}
+
+template &lt;typename T&gt;
+private void X&lt;T&gt;::_f2() { //&lt;-PEM for class template
+  /* stuff */
+}
+
+//templated f() calls both _f1() and _f2()
+template &lt;typename T&gt;
+private void X&lt;T&gt;::f() {
+  _f1();
+  _f2();
+}
+
+//Some specializations of f()
+template &lt;&gt; void X&lt;char&gt;::f() { _f2(); }
+template &lt;&gt; void X&lt;int&gt;::f() { _f1(); }
+template &lt;&gt; void X&lt;float&gt;::f() { }
+template &lt;&gt; void X&lt;double&gt;::f() { _f1(); }
+
+//A specialization of _f1()
+template &lt;&gt;
+private void X&lt;double&gt;::_f1() { _f2(); }
+
+//Explicit instantiations
+template class X&lt;char&gt;;  /* Will instantiate the following:
+                          * X&lt;char&gt;::f();
+                          * X&lt;char&gt;::_f2();
+                          */
+template class X&lt;short&gt;; /* Will instantiate the following:
+                          * X&lt;short&gt;::f();
+                          * X&lt;short&gt;::_f1();
+                          * X&lt;short&gt;::_f2();
+                          */
+template class X&lt;int&gt;;   /* Will instantiate the following:
+                          * X&lt;int&gt;::f();
+                          * X&lt;int&gt;::_f1();
+                          */
+template class X&lt;float&gt;; /* Will instantiate the following:
+                          * X&lt;float&gt;::f();
+                          */
+template class X&lt;double&gt;;/* Will instantiate the following:
+                          * X&lt;double&gt;::f();
+                          * X&lt;double&gt;::_f2();
+                          * X&lt;double&gt;::_f1();
+                          */
+</code></pre>
+
+<h1>Technical Summary</h1>
 
 <p>In summary, this proposal makes the following changes to the standard:</p>
 
 <ul>
-<li>Allow the programmer to declare class methods which are
-not present in the class definition. All of these methods will
-have private access control.</li>
-<li>In the class definition, allow the programmer to provide the static keyword
-after a method declaration, with the same meaning as if it appeared
-before the method declaration.</li>
-<li>If a static method is declared in the class definition, allow the programmer
-to optionally include the static keyword after the method signature
-in the method definition. This keyword will have no effect.</li>
-<li>If a non-static method is declared in the class definition, adding
-the static keyword before or after the method signature in the method definition
-will result in a compiler error.</li>
-<li>If a class method is declared and is not present in the class definition, 
-the user may add the static keyword before the method signature to give
-the method file scope.
-All declarations and definitions must be the same with regards to
-the static keyword prefix, otherwise a compiler error results.</li>
-<li>If a class method is declared and is not present in the class definition, 
-the user may add the static keyword after the method signature to declare
-a new private static class method.
-All declarations and definitions must be the same with regards to
-the static keyword suffix, otherwise a compiler error results.</li>
+<li>Allow the programmer to declare additional class methods outside of the class definition. These so called <em>private extension method</em> declarations must be prefixed by the <code>private</code> keyword. These methods will have private access control.</li>
+<li>The programmer may specify the <code>static</code> keyword <em>after</em> the <code>private</code> keyword to declare a private static extension member function.</li>
+<li>The programmer may specify the <code>static</code> keyword <em>before</em> the <code>private</code> keyword to declare a private extension method with internal linkage.</li>
+<li>The programmer may specify the <code>static</code> keyword twice, once  <em>before</em> and once <em>after</em> the <code>private</code> keyword to declare a private static extension member function with internal linkage.</li>
+<li>The programmer may declare a private extension method or private static extension member function within an anonymous namespace to give the method internal linkage. This namespace <em>must</em> be a member of the namespace which contains the given class.</li>
 </ul>
 
-<h1>Alternate Syntax</h1>
+<h1>Counter Arguments</h1>
 
-<p>There are many possible ways to encode this new feature in syntax. One
-downside of the current approach is that previously if the user wrote
-a typo when writing a member function name in the definition they
-would get a helpful compilation error. With this proposal, they will
-simply define a private extension method, and not see any error until
-later during the linking stage. We believe the benefits of our
-proposal outweigh this minor cost. Some other schemes for syntax
-are included below for consideration.</p>
+<p>We will now address some arguments against this proposal.</p>
 
-<h2>Require a keyword</h2>
+<h2>Violating Access Control</h2>
 
-<p>Another approach is to require a keyword in front of each private
-extension method declaration and definition. This addresses the above
-mentioned typo issue but has other drawbacks as will be described shortly.
-It would look like this:</p>
+<p>One immediate and common objection to this proposal is that it may break encapsulation by allowing
+the programmer to subvert access control. By definition, a PEM has private access control and thus
+they cannot be called outside of the class scope. There is however, one exploit
+discovered by Richard Smith where merely the existence of an additional class method
+which is never called allows a violation of access control.</p>
 
-<pre><code>class Foo {
+<pre><code>class A {
+  int n;
+public:
+  A() : n(42) {}
 };
 
-keyword void Foo::_priv1(); //&lt;-private extension method
-void Foo::_priv2(); //Compilation Error! _priv2() not found in class definition. Private extension methods require keyword 'keyword'!
+template&lt;typename T&gt; struct X {
+  static decltype(T()()) t;
+};
+template&lt;typename T&gt; decltype(T()()) X&lt;T&gt;::t = T()();
+
+int A::*p;
+private int A::expose_private_member() { // note, not called anywhere
+  struct DoIt {
+    int operator()() {
+      p = &amp;A::n;
+      return 0;
+    }
+  };
+  return X&lt;DoIt&gt;::t; // odr-use of X&lt;DoIt&gt;::t triggers instantiation
+}
+
+int main() {
+  A a;
+  return a.*p; // read private member
+}
 </code></pre>
 
-<p>The question of course is which keyword to use. Here are some ideas:</p>
+<p>This example does work in C++11 and would be a standards conforming way to violate access
+control if this proposal were to be accepted. However
+we believe this is not problem. This example is artificially contrived to exploit
+access control. Indeed, many methods of violating access control already exist
+within the current language [<a href="GotW076">GotW076</a>]. </p>
+
+<p>We agree with the author of this article [<a href="GotW076">GotW076</a>]:</p>
+
+<p>"The issue here is of protecting against Murphy vs. protecting against Machiavelli... that is, protecting against accidental misuse (which the language does very well) vs. protecting against deliberate abuse (which is effectively impossible). In the end, if a programmer wants badly enough to subvert the system, he'll find a way,"</p>
+
+<h2>Modules will solve this problem</h2>
+
+<p>Maybe they will, maybe they won't. Modules are still not very well defined. We do not what modules
+will look like when and if they finally arrive. This proposal aims to solve a real problem
+in current C++. It has low implementation overhead. This proposal could also be seen as a step
+towards implementing a more complete solution with modules.</p>
+
+<h2>There are already current workarounds</h2>
+
+<p>One powerful argument against the proposal is that there are already a set of current work arounds.
+Friends and/or nested classes can be used to implement a partial variant of PEM in the current language.
+Here is one such variant.</p>
+
+<p>Public header file:</p>
+
+<pre><code>class X {
+  public:
+    void doWork();
+
+  private:
+    int _i;
+
+    class XHelper; /* Could also be a friend */
+};
+</code></pre>
+
+<p>Private implementation:</p>
+
+<pre><code>class X::XHelper {
+  static void doWorkHelper(X&amp; x) { //&lt;-PEM
+    x._i = 42;
+  }
+
+  class XHelper2;
+};
+
+class X::XHelper::XHelper3 {
+  static void doMoreWorkHelper(X&amp; x) { //&lt;-PEM
+    x._i++;
+  }
+};
+
+void X::doWork() {
+  XHelper::doWorkHelper(x);
+  XHelper::XHelper2::doMoreWorkHelper(x);
+}
+</code></pre>
+
+<p>Pratically, this achieves most of the benefits of PEM, but it has some drawbacks:</p>
+
+<ul>
+<li>We still leak the XHelper symbol (implementation) to the header file (interface).</li>
+<li>All of the PEMs implemented by the helper cannot access the data members of X directly <code>x._i = 42</code> vs <code>_i = 42</code>. We are forced to write our private methods using C style procedural syntax instead of taking advantage of the C++ implicit <code>this</code> pointer.</li>
+<li>The set of PEMs are restricted to the class definition of XHelper. We cannot arbitrarily introduce new PEMS without modifying XHelper or creating yet another subclass of XHelper.</li>
+<li>XHelper static member function signatures cannot use symbols with internal linkage unless XHelper itself resides in only one translation unit.</li>
+</ul>
+
+<h1>Alternatives and Additions</h1>
+
+<p>There are many possible ways to encode this new feature in syntax, we will discuss some alternatives here:</p>
+
+<h2>The Current Approach</h2>
+
+<p>The current approach uses the private keyword. </p>
+
+<p>Pros:
+ - Completely backwards compatible
+ - Does not invent new keywords or unusual syntax
+ - Neatly resolves the 2 uses of static (internal linkage vs static class method)
+ - Private keyword has a natural meaning here</p>
+
+<p>Cons:
+ - Novice programmers will inevitably ask why they cannot declare public and protected extension methods.</p>
+
+<h2>Use a different keyword</h2>
+
+<p>We could use a keyword other than private. 
+Here are some possible candidates, we believe them all to be inferior to private.</p>
 
 <ul>
 <li>explicit: The explicit keyword could be reused here and it even
@@ -398,12 +688,6 @@ are related to type conversions and it would be better to keep
 it this way for consistency and ease of understanding.
 Do we really want another overloaded keyword like
 static in the language?</li>
-<li>private: The private keyword seems like a natural choice but it
-is a bad choice because it is confusing.
-New users will undoubtedly ask why you can write a private
-extension method but not a public or protected one. Someone in
-the future might even be tempted to write a proposal similar to
-this one allowing public and protected extension methods. </li>
 <li>[[attribute]]: This is almost like inventing a new keyword, except
 you're cheating by instead using a generalized attribute.
 Attributes should be used for back door keywords 
@@ -414,27 +698,63 @@ there is a really good reason. This is a small proposal that
 does not merit a new keyword.</li>
 </ul>
 
-<h2>Static extension methods</h2>
+<h2>Remove the keyword</h2>
 
-<p>In order to the resolve the ambiguity of the static keyword we proposed
-to allow specifying static after the function signature. Another
-possibility is to just change the meaning of the static prefix 
-for member functions to denote a static method.</p>
+<p>Another approach is to avoid the use of a keyword entirely. This creates a problem
+with the double meaning of the static keyword. We resolve it by moving the
+static keyword after the entire function signature, similar to const.</p>
 
-<p>For example:</p>
+<pre><code>class Foo {};
 
-<pre><code>class Foo {
-};
-
-static void Foo::priv1(); &lt;-Static private extension method
+void Foo::_f1(); //&lt;-PEM
+void Foo::_f2() static; //&lt;-PSEMF
+static void Foo::_f3(); //&lt;-PEM with internal linkage
+static void Foo::_f4() static; //&lt;-PSEMF with internal linkage
 </code></pre>
 
-<p>This would be a viable approach and has even less impact on the
-standard then the current proposal. Users who want to have file scoped
-private extension methods can still use anonymous namespaces.
-We have opted against this approach for now as we believe it will lead
-to confusion as the already encumbered static keyword will now have
-different meanings for member functions and free functions.</p>
+<p>Pros:
+ - Completely backwards compatible
+ - Avoids the confusion private vs public/protected extension methods.
+Cons:
+ - Previously if the user made a typo when defining a class method, he would get a compiler error. Now he will silently declare a new private extension method. This error is likely to be caught during link time however.</p>
+
+<h2>Reopening the class scope</h2>
+
+<p>One possible addition to this proposal would be to allow reopening the class private scope
+to add not only new member functions but also typedefs and nested types. This is somewhat
+reminiscent of the style of the <code>extern "C"</code> feature.
+Credit goes to Vicente J. Botet Escriba for the handy syntax.</p>
+
+<pre><code>class Foo {};
+
+private Foo { //&lt;-Reopen Foo's private scope
+
+  void _f(); //&lt;-PEM
+  static void _g(); //&lt;-PSEMF
+
+  int _x; //&lt;-A static data member. We cannot add data members to Foo! 
+          //Maybe this should be a compiler error?
+  static int _y; //&lt;-Another static data member.
+
+  typedef float real; //&lt;-A typedef, which is private to Foo
+
+  class Bar; //&lt;-Forward declaration of a nested class Foo::Bar
+
+  class Baz {}; //&lt;-Define a nested class Foo::Baz
+
+  friend class Gaz; //&lt;-Error: Cannot declare extended friends! This is a horrible break in encapsulation!
+};
+
+static private Foo { //&lt;-Ropen Foo's private scope again, this time with internal linkage
+  /* stuff */
+};
+
+namespace {
+   private Foo { //&lt;-Reopen yet again with internal linkage using anonymous namespace.
+     /* stuff */
+   };
+};
+</code></pre>
 
 <h1>Acknowledgements</h1>
 
@@ -445,4 +765,5 @@ different meanings for member functions and free functions.</p>
 <ul>
 <li><a name="Lakos01"></a>[Lakos01] Lakos, John. <em>Large-Scale C++ Software Design</em>, Addison-Wesley, July 1996, ISBN 0201633620.</li>
 <li><a name="KDEABI"></a>[KDEABI] <em>Policies/Binary Compatibility Issues With C++ - KDE TechBase</em>, Available online at <a href="http://techbase.kde.org/Policies/Binary_Compatibility_Issues_With_C++">http://techbase.kde.org/Policies/Binary_Compatibility_Issues_With_C++</a>.</li>
+<li><a name="GotW076"></a>[Gotw076] Sutter, Herb. <em>GotW #76: Uses and Abuses of Access Rights</em>, Available online at <a href="http://www.gotw.ca/gotw/076.htm">http://www.gotw.ca/gotw/076.htm</a>.</li>
 </ul>
