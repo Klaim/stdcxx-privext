@@ -608,6 +608,8 @@ There are already current workarounds
 
 One powerful argument against the proposal is that there are already a set of current work arounds.
 Friends and/or nested classes can be used to implement a partial variant of PEM in the current language.
+Nested classes are superior to friends because they can be further extended with additional
+nested sub classes where as all friends have to be declared in the original class definition.
 Here is one such variant.
 
 Public header file:
@@ -619,7 +621,7 @@ Public header file:
       private:
         int _i;
 
-        class XHelper; /* Could also be a friend */
+        class XHelper;
     };
 
 Private implementation:
@@ -632,7 +634,7 @@ Private implementation:
       class XHelper2;
     };
 
-    class X::XHelper::XHelper3 {
+    class X::XHelper::XHelper2 {
       static void doMoreWorkHelper(X& x) { //<-PEM
         x._i++;
       }
