@@ -651,6 +651,8 @@ Pratically, this achieves most of the benefits of PEM, but it has some drawbacks
 * All of the PEMs implemented by the helper cannot access the data members of X directly `x._i = 42` vs `_i = 42`. We are forced to write our private methods using C style procedural syntax instead of taking advantage of the C++ implicit `this` pointer.
 * The set of PEMs are restricted to the class definition of XHelper. We cannot arbitrarily introduce new PEMS without modifying XHelper or creating yet another subclass of XHelper.
 * XHelper static member function signatures cannot use symbols with internal linkage unless XHelper itself resides in only one translation unit.
+* This technique is obscure and not well known, a first class language feature would be more accessible to new users.
+* The fact that this technique was discovered shows a need for PEMs in the community.
 
 
 Alternatives and Additions
@@ -723,7 +725,8 @@ Reopening the class scope
 One possible addition to this proposal would be to allow reopening the class private scope
 to add not only new member functions but also typedefs and nested types. This is somewhat
 reminiscent of the style of the `extern "C"` feature.
-Credit goes to Vicente J. Botet Escriba for the handy syntax.
+Credit goes to Péter Radics for the initial idea for the idea of reopening the class scope
+and Vicente J. Botet Escriba for the handy syntax using private.
 
     class Foo {};
 
