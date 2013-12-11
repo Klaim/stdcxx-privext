@@ -225,7 +225,7 @@ Declaring private extension methods
 
 In order to declare a PEM, we simply declare
 a new class member function outside of the class definition 
-and prefix it with the private keyword:
+and prefix it with the `private` keyword:
 
 foo.hh
 
@@ -309,10 +309,10 @@ foo\_x.cc (private implementation file)
 
 foo\_y.cc (private implementation file)
 
-   //implementation of puby()
-   int Foo::puby() {
-     return _y + _priv4();
-   }
+    //implementation of puby()
+    int Foo::puby() {
+      return _y + _priv4();
+    }
 
 Private Extension Constructors
 --------------
@@ -346,9 +346,9 @@ Class Definition visibility and the private keyword
 ----------------------
 
 Any class method which has been declared but not found in the class definition 
-requires the private keyword, otherwise a compiler error will ensue.
-Likewise any class method definition which has been previously
-declared in the class definition must not be prefixed by the private keyword.
+requires the `private` keyword, otherwise a compiler error will ensue.
+Likewise any method definition which has been previously
+declared in the class definition must not be prefixed by the `private` keyword.
 For this reason, all class method declarations will require the class definition
 to been previously seen.
 
@@ -369,7 +369,7 @@ Static Member Functions
 As was discussed earlier, static private member functions are also 
 implementation details and do not belong in the class definition.
 We can define static private extension member functions by adding the `static`
-keyword *after* the private keyword:
+keyword *after* the `private` keyword:
 
     class Foo {
       public:
@@ -389,7 +389,7 @@ Internal Linkage
 Most private extension methods are likely to be used only within one translation unit (TU). 
 Symbols used within only one TU can be given internal linkage. This reduces the number of symbols
 in the entire application and allows more aggressive optimizations. For example, the compiler can
-inline all calls and completely remove the symbol from the compiled binary.
+inline all calls and completely remove the function body from the compiled binary.
 
 ### The Static keyword
 
@@ -453,16 +453,16 @@ This can be resolved using a full qualification.
       namespace {
         class X {};
 
-        private X::_a(); //Declares PEM for X within the anonymous namespace
+        private X::_a(); //Declares a PEM for X within the anonymous namespace, with internal linkage.
 
-        private A::X::_a(); //Declares a PEM for A::X.
+        private A::X::_a(); //Declares a PEM for A::X with internal linkage.
       }
     }
 
 Class Templates and PEMs
 --------------------
 
-Template classes are supported in the natural way:
+Class templates are supported in the natural way:
 
     template <typename T>
     class X {};
@@ -473,8 +473,9 @@ Template classes are supported in the natural way:
     template <>
     private void X<int>::_f2(); //<-Specialization of PEM for X<int>
 
-Explicit template instantiation of a class will instantiate all of it's member functions.
-This will recursively instantiate any PEMs called by those member functions.
+Explicit instantiation of a class template will instantiate all of it's member functions.
+This will recursively instantiate any PEMs called by those member functions. This follows the
+same rules as explicit instantiation of a class template which calls free function templates.
 
     template <typename T>
     class X {
@@ -591,14 +592,14 @@ we believe this is not problem. This example is artificially contrived to exploi
 access control. Indeed, many methods of violating access control already exist
 within the current language \[[GotW076](GotW076)\]. 
 
-We agree with the author of this article \[[GotW076](GotW076)\]:
+We agree with the author of this article:
 
-"The issue here is of protecting against Murphy vs. protecting against Machiavelli... that is, protecting against accidental misuse (which the language does very well) vs. protecting against deliberate abuse (which is effectively impossible). In the end, if a programmer wants badly enough to subvert the system, he'll find a way,"
+"The issue here is of protecting against Murphy vs. protecting against Machiavelli... that is, protecting against accidental misuse (which the language does very well) vs. protecting against deliberate abuse (which is effectively impossible). In the end, if a programmer wants badly enough to subvert the system, he'll find a way," \[[GotW076](GotW076)\].
 
 Modules will solve this problem
 -------------------
 
-Maybe they will, maybe they won't. Modules are still not very well defined. We do not what modules
+Maybe they will, maybe they won't. Modules are still not very well defined. We do not know what modules
 will look like when and if they finally arrive. This proposal aims to solve a real problem
 in current C++. It has low implementation overhead. This proposal could also be seen as a step
 towards implementing a more complete solution with modules.
@@ -606,9 +607,9 @@ towards implementing a more complete solution with modules.
 There are already current workarounds
 --------------------
 
-One powerful argument against the proposal is that there are already a set of current work arounds.
+One powerful argument against the proposal is that there are already a set of current workarounds.
 Friends and/or nested classes can be used to implement a partial variant of PEM in the current language.
-Nested classes are superior to friends because they can be further extended with additional
+For this workaround, nested classes are superior to friends because they can be further extended with additional
 nested sub classes where as all friends have to be declared in the original class definition.
 Here is one such variant.
 
@@ -647,13 +648,13 @@ Private implementation:
 
 Pratically, this achieves most of the benefits of PEM, but it has some drawbacks:
 
-* We still leak the XHelper symbol (implementation) to the header file (interface).
-* All of the PEMs implemented by the helper cannot access the data members of X directly `x._i = 42` vs `_i = 42`. We are forced to write our private methods using C style procedural syntax instead of taking advantage of the C++ implicit `this` pointer.
-* The set of PEMs are restricted to the class definition of XHelper. We cannot arbitrarily introduce new PEMS without modifying XHelper or creating yet another subclass of XHelper.
-* XHelper static member function signatures cannot use symbols with internal linkage unless XHelper itself resides in only one translation unit.
+* We still leak the `XHelper` symbol (implementation) to the header file (interface).
+* All of the PEMs implemented by the helper cannot access the data members of X directly `x._i = 42` vs `_i = 42`. We are forced to write our private methods using C style procedural syntax and must forego the C++ implicit `this` pointer.
+* The set of PEMs are restricted to the class definition of `XHelper`. We cannot arbitrarily introduce new PEMS without modifying `XHelper` or creating yet another subclass of `XHelper`.
+* `XHelper` and all of it's methods cannot have internal linkage.
+* `XHelper` static member function signatures cannot use symbols with internal linkage unless `XHelper` itself resides in only one translation unit.
 * This technique is obscure and not well known, a first class language feature would be more accessible to new users.
 * The fact that this technique was discovered shows a need for PEMs in the community.
-
 
 Alternatives and Additions
 ===================
@@ -666,12 +667,14 @@ The Current Approach
 The current approach uses the private keyword. 
 
 Pros:
+
  - Completely backwards compatible
  - Does not invent new keywords or unusual syntax
  - Neatly resolves the 2 uses of static (internal linkage vs static class method)
  - Private keyword has a natural meaning here
 
 Cons:
+
  - Novice programmers will inevitably ask why they cannot declare public and protected extension methods.
 
 Use a different keyword
@@ -713,9 +716,12 @@ static keyword after the entire function signature, similar to const.
     static void Foo::_f4() static; //<-PSEMF with internal linkage
 
 Pros:
+
  - Completely backwards compatible
  - Avoids the confusion private vs public/protected extension methods.
+
 Cons:
+
  - Previously if the user made a typo when defining a class method, he would get a compiler error. Now he will silently declare a new private extension method. This error is likely to be caught during link time however.
 
 
@@ -757,6 +763,27 @@ and Vicente J. Botet Escriba for the handy syntax using private.
          /* stuff */
        };
     };
+
+Internal Linkage by Default
+----------------------
+
+Several people have suggested that perhaps PEMs should always have internal linkage by default, requiring
+an extra keyword for external linkage. We could use the `extern` keyword to denote external linkage. 
+This would also allow the `static` keyword to freely move before and after the `private` keyword.
+We also avoid the need to anonymous namespaces.
+
+The syntax for this idea might look like the following:
+
+    class Foo {};
+
+    private void Foo::_f1(); //<-PEM with internal linkage
+    extern private void Foo::_f2(); //<-PEM with external linkage
+    private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
+    static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
+    extern private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
+    extern static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
+
+Seeing `extern static private` all qualifying one function looks rather strange.
 
 Acknowledgements
 ====================
