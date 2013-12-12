@@ -148,13 +148,13 @@ friend feature and we will not speak of it again.
 The leaves us with the non-virtual private methods and static private methods.
 The direct users and child classes cannot call private methods so they
 do not need to see their signatures, much much less know of their existence.
-The compiler also does not need to know of the existence of private
-methods until they are called. On all major platforms, changing
+The compiler also does not need to aware of the private
+methods signatures until they are called. On all major platforms, changing
 the non-virtual private methods (which are not called by inline functions)
 does not affect the ABI of the class itself
 \[[KDEABI](#KDEABI)\].
 
-We conclude that non-virtual private method and static private method
+We conclude that non-virtual private method and private static member function
 declarations are not a part of the class interface and thus should not
 be required in the class definition.
 
@@ -165,44 +165,53 @@ High level discussions about encapsulation aside, there are some very real
 practical problems that arise from requiring private method
 declarations in the class definition.
 
-* Whenever the class developer adds, removes, or changes the private method
-    signatures, all users of the class *must* recompile. Large C++ applications
+* Whenever the class developer adds, removes, or modifies a private method
+    signature, all users of the class *must* recompile. Large C++ applications
     already have prohibitively long compilation times. Waiting for compilation
     wastes a lot of programmer time and reduces productivity.
     Whole books such as \[[Lakos01](#Lakos01)\] have been written
     with large sections dedicated to techniques for reducing compile times.
-    Compilation time in C++ is a big problem that needs to be addressed.
+    Long compilation time in C++ is a big problem that needs to be addressed.
     This proposal is one major step in the reduction of programmer
     time wasted waiting for compilation during development.
     Of all of the issues given here, this one is the most dire.
-* All of the symbols used in private method signatures must be exposed
+* Unessessary dependencies are introduced into the class header file. 
+    All of the symbols used in private method signatures must be exposed
     to the clients of the class. This matters for shared libraries
     where we wish to minimize symbol dependencies to optimize library load time and
     avoid symbol name clashes. While some platform dependent techniques
     such as visibility control can be used to mitigate the symbol
     pollution, this requires extra work from the programmer which he
-    would not need to do at all if the private method signature was
+    would not need to do at all if the private method signature along
+    with all of it's symbol dependencies were
     safely encapsulated within the project's internal source files.
-* File scope symbols (i.e static and anonymous namespaces) cannot be
+* Symbols with internal linkage (i.e keyword `static` and anonymous namespaces) cannot be
     used in private method signatures, even if those private methods
-    are only called within one translation unit. File scope symbols
-    are another good technique for reducing the symbols exported by
+    are only called within one translation unit. This artificially 
+    restricts the programmer from passing and returning intrnally linked
+    symbols to and from their private methods. Internal linkage is
+    another good technique for reducing the set of symbols exported by
     a binary and can also enable compiler optimizations.
 * Some classes may have multiple implementations which can be swapped
     out at compile time. One example is a cross platform file IO
-    library such as iostream. It is not unreasonable to expect one
-    platform to require different private method signatures than
-    another. Because these signatures are required to be in the
+    library such as iostream. It is not unreasonable to expect 
+    each platform to require a different set of private method
+    signatures to implement its behavior.
+    Because these signatures are required to be in the
     definition, we are then forced to also include all of the
     messy conditional compilation details into the header files.
 
+Problem Solution
+------------
 
 We propose that private non-virtual
 methods and private static methods should be able to be declared outside
-of the class definition. This change does not break encapsulation
-because the methods are private, in fact it improves encapsulation
-for reasons previously stated.
-We believe this feature could also be another step towards modules in C++.
+of the class definition. 
+Not only does this change not break encapsulation, it actually improves
+encapsulation because unessessary implementation details are being removed from the interface.
+Unlike PIMPL or other related encapsulation techniques, this new feature has
+no run time overhead.
+We believe the implementation of this feature could also be another step towards modules in C++.
 
 As a side note, some programming languages provide a mixin feature
 which allows programmers to reopen a class and extend its interface
@@ -314,7 +323,7 @@ foo\_y.cc (private implementation file)
       return _y + _priv4();
     }
 
-Private Extension Constructors
+Private extension constructors
 --------------
 
 We can also declare additional private constructors:
@@ -381,7 +390,7 @@ keyword *after* the `private` keyword:
     private static int Foo::_f2() { return 42; } //<-PSEMF
     int Foo::sf() { return _f2(); }
 
-The `static` keyword must appear after `private`. The reason will be shown in the next section.
+The `static` keyword must appear *after* `private`. The reason will be shown in the next section.
 
 Internal Linkage
 --------------------------
@@ -409,11 +418,12 @@ internal linkage to a PEM, we include the `static` keyword
 ### Anonymous namespaces
     
 The other method used in C++ to enable internal linkage is the use of anonymous name spaces.
-The use of anonymous namespace presents something of a conundrum for PEMs.
+The anonymous namespace presents something of a conundrum for PEMs.
 Class methods always exist in the same namespace as the class itself. Declaring a PEM
 within an anonymous namespace would seem to be defining a method of a class within a different namespace
 as that of the class itself. We are opting to allow this feature, but are willing to forego it should
-the committee decide against it. We already have the static keyword for internal linkage so this is not a huge loss.
+the committee decide against it. We already have the static keyword for internal linkage so it would
+not be a huge loss if anonymous namespaces were not supported.
 
     class Foo {
     };
@@ -462,20 +472,22 @@ This can be resolved using a full qualification.
 Class Templates and PEMs
 --------------------
 
-Class templates are supported in the natural way:
+Class templates are supported in the natural way and do not require any special rules or caveats.
 
     template <typename T>
     class X {};
 
     template <typename T>
-    private void X<T>::_f1(); //<-PEM for class template
+    private void X<T>::_f1(); //<-PEM for class template X
 
     template <>
     private void X<int>::_f2(); //<-Specialization of PEM for X<int>
 
 Explicit instantiation of a class template will instantiate all of it's member functions.
-This will recursively instantiate any PEMs called by those member functions. This follows the
-same rules as explicit instantiation of a class template which calls free function templates.
+This will recursively instantiate only the PEMs (and additional PEMs called by these,
+in a recursive manner) called by those member functions.
+This procedure follows the same rules as explicit instantiation
+of a class template which calls free function templates.
 
     template <typename T>
     class X {
@@ -539,7 +551,10 @@ Technical Summary
     
 In summary, this proposal makes the following changes to the standard:
 
-* Allow the programmer to declare additional class methods outside of the class definition. These so called *private extension method* declarations must be prefixed by the `private` keyword. These methods will have private access control.
+* Allow the programmer to declare additional class methods outside of the
+    class definition. These so called *private extension method*
+    declarations must be prefixed by the `private` keyword.
+    These methods will have private access control.
 * The programmer may specify the `static` keyword *after* the `private` keyword to declare a private static extension member function.
 * The programmer may specify the `static` keyword *before* the `private` keyword to declare a private extension method with internal linkage.
 * The programmer may specify the `static` keyword twice, once  *before* and once *after* the `private` keyword to declare a private static extension member function with internal linkage.
@@ -586,13 +601,14 @@ which is never called allows a violation of access control.
       return a.*p; // read private member
     }
     
-This example does work in C++11 and would be a standards conforming way to violate access
-control if this proposal were to be accepted. However
-we believe this is not problem. This example is artificially contrived to exploit
-access control. Indeed, many methods of violating access control already exist
-within the current language \[[GotW076](GotW076)\]. 
+This example would be a newly introduced standards conforming way to violate access
+control if this proposal were to be accepted.
 
-We agree with the author of this article:
+This is not actually a problem. This example is artificially contrived to exploit
+access control. It is not a common error that would be made by novies nor
+is it an obvious or easy to use tool to abuse access control and write poor interfaces.
+Indeed, many methods of violating access control already exist
+within the current language \[[GotW076](GotW076)\]. We agree with the author of that article.
 
 "The issue here is of protecting against Murphy vs. protecting against Machiavelli... that is, protecting against accidental misuse (which the language does very well) vs. protecting against deliberate abuse (which is effectively impossible). In the end, if a programmer wants badly enough to subvert the system, he'll find a way," \[[GotW076](GotW076)\].
 
@@ -601,17 +617,17 @@ Modules will solve this problem
 
 Maybe they will, maybe they won't. Modules are still not very well defined. We do not know what modules
 will look like when and if they finally arrive. This proposal aims to solve a real problem
-in current C++. It has low implementation overhead. This proposal could also be seen as a step
+in language now rather than the unknown future. It has low implementation overhead. This proposal could also be seen as a step
 towards implementing a more complete solution with modules.
 
 There are already current workarounds
 --------------------
 
-One powerful argument against the proposal is that there are already a set of current workarounds.
+Likely the most compelling argument against the proposal is that there are already a set of current workarounds.
 Friends and/or nested classes can be used to implement a partial variant of PEM in the current language.
 For this workaround, nested classes are superior to friends because they can be further extended with additional
 nested sub classes where as all friends have to be declared in the original class definition.
-Here is one such variant.
+An example is provided.
 
 Public header file:
 
@@ -649,7 +665,8 @@ Private implementation:
 Pratically, this achieves most of the benefits of PEM, but it has some drawbacks:
 
 * We still leak the `XHelper` symbol (implementation) to the header file (interface).
-* All of the PEMs implemented by the helper cannot access the data members of X directly `x._i = 42` vs `_i = 42`. We are forced to write our private methods using C style procedural syntax and must forego the C++ implicit `this` pointer.
+* All of the PEMs implemented by the helper cannot access the data members of X
+    directly. They must use C style syntax `x._i = 42` instead of the more natural `_i = 42` provided by the implicit `this` pointer.
 * The set of PEMs are restricted to the class definition of `XHelper`. We cannot arbitrarily introduce new PEMS without modifying `XHelper` or creating yet another subclass of `XHelper`.
 * `XHelper` and all of it's methods cannot have internal linkage.
 * `XHelper` static member function signatures cannot use symbols with internal linkage unless `XHelper` itself resides in only one translation unit.
@@ -659,12 +676,8 @@ Pratically, this achieves most of the benefits of PEM, but it has some drawbacks
 Alternatives and Additions
 ===================
 
-There are many possible ways to encode this new feature in syntax, we will discuss some alternatives here:
-
-The Current Approach
-----------------------
-
-The current approach uses the private keyword. 
+The current approach uses the private keyword to declare a PEM or PSEMF.
+What are the consequences of this syntax?
 
 Pros:
 
@@ -676,6 +689,8 @@ Pros:
 Cons:
 
  - Novice programmers will inevitably ask why they cannot declare public and protected extension methods.
+
+Might there be a better approach? We will discuss some alternatives.
 
 Use a different keyword
 -------------------------
@@ -692,7 +707,7 @@ Here are some possible candidates, we believe them all to be inferior to private
     static in the language?
 * [[attribute]]: This is almost like inventing a new keyword, except
     you're cheating by instead using a generalized attribute.
-    Attributes should be used for back door keywords 
+    Attributes should not be used for back door keywords 
     to implement new language features.
 * Invent a new keyword: This probably doesn't even need to be said.
     New keywords are something that should only be introduced if
@@ -770,7 +785,7 @@ Internal Linkage by Default
 Several people have suggested that perhaps PEMs should always have internal linkage by default, requiring
 an extra keyword for external linkage. We could use the `extern` keyword to denote external linkage. 
 This would also allow the `static` keyword to freely move before and after the `private` keyword.
-We also avoid the need to anonymous namespaces.
+We also avoid the need for anonymous namespaces.
 
 The syntax for this idea might look like the following:
 
@@ -780,10 +795,8 @@ The syntax for this idea might look like the following:
     extern private void Foo::_f2(); //<-PEM with external linkage
     private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
     static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
-    extern private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
-    extern static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
-
-Seeing `extern static private` all qualifying one function looks rather strange.
+    extern private static void Foo::_f3(); //<-PEM //<-PSEMF with external linkage
+    extern static private void Foo::_f3(); //<-PEM //<-PSEMF with external linkage
 
 Acknowledgements
 ====================
