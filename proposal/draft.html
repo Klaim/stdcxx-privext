@@ -4,7 +4,7 @@
 <li>Document Number: NXXX=YY-ZZZZ</li>
 <li>Date: 2013-12-08</li>
 <li>Programming Language C++, Language Evolution Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;&#x69;&#x6C;&#116;&#x6F;:&#x66;&#109;&#97;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#x38;&#55;&#x36;&#64;&#x67;&#x6D;&#97;&#105;&#x6C;&#x2E;&#99;&#x6F;&#109;">&#x66;&#109;&#97;&#116;&#x74;&#x68;&#x65;&#x77;&#53;&#x38;&#55;&#x36;&#64;&#x67;&#x6D;&#97;&#105;&#x6C;&#x2E;&#99;&#x6F;&#109;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;il&#116;&#x6F;:&#x66;&#x6D;&#x61;&#x74;&#116;&#104;&#x65;&#x77;&#53;&#56;7&#54;&#64;&#103;&#109;&#97;&#105;l&#46;&#x63;o&#109;">&#x66;&#x6D;&#x61;&#x74;&#116;&#104;&#x65;&#x77;&#53;&#56;7&#54;&#64;&#103;&#109;&#97;&#105;l&#46;&#x63;o&#109;</a></li>
 </ul>
 
 <h1>Introduction</h1>
@@ -790,8 +790,8 @@ We also avoid the need to anonymous namespaces.</p>
 
 private void Foo::_f1(); //&lt;-PEM with internal linkage
 extern private void Foo::_f2(); //&lt;-PEM with external linkage
-private static void Foo::_f3(); //&lt;-PEM //&lt;-PSEMF with internal linkage
-static private void Foo::_f3(); //&lt;-PEM //&lt;-PSEMF with internal linkage
+private static void Foo::_f3(); //&lt;-PSEMF with internal linkage
+static private void Foo::_f3(); //&lt;-PSEMF with internal linkage
 extern private static void Foo::_f3(); //&lt;-PEM //&lt;-PSEMF with internal linkage
 extern static private void Foo::_f3(); //&lt;-PEM //&lt;-PSEMF with internal linkage
 </code></pre>

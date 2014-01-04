@@ -778,8 +778,8 @@ The syntax for this idea might look like the following:
 
     private void Foo::_f1(); //<-PEM with internal linkage
     extern private void Foo::_f2(); //<-PEM with external linkage
-    private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
-    static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
+    private static void Foo::_f3(); //<-PSEMF with internal linkage
+    static private void Foo::_f3(); //<-PSEMF with internal linkage
     extern private static void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
     extern static private void Foo::_f3(); //<-PEM //<-PSEMF with internal linkage
 
