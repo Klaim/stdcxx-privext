@@ -1,7 +1,8 @@
-stdcxx-privext
+N3863 - Private Extension Methods
 ==============
 
-C++ Proposal: Private Extension Methods
+This proposal has been submitted to the ISO C++ committee.
+* http://open-std.org/jtc1/sc22/wg21/docs/papers/2014/n3863.html
 
 For the current draft go here:
 * https://rawgithub.com/fmatthew5876/stdcxx-privext/master/proposal/draft.md

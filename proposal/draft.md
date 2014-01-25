@@ -1,7 +1,7 @@
 Private Extension Methods
 ==========================================
 
-* Document Number: NXXX=YY-ZZZZ
+* Document Number: N2863
 * Date: 2013-12-08
 * Programming Language C++, Language Evolution Working Group
 * Reply-to: Matthew Fioravante <fmatthew5876@gmail.com>
