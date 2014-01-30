@@ -4,7 +4,7 @@
 <li>Document Number: N2863</li>
 <li>Date: 2013-12-08</li>
 <li>Programming Language C++, Language Evolution Working Group</li>
-<li>Reply-to: Matthew Fioravante <a href="&#x6D;&#97;&#105;&#108;&#x74;&#x6F;:&#x66;&#109;&#x61;&#116;&#116;&#104;&#101;&#x77;&#x35;&#56;&#55;&#x36;&#64;&#103;&#109;&#x61;&#x69;&#x6C;&#46;&#99;&#111;&#109;">&#x66;&#109;&#x61;&#116;&#116;&#104;&#101;&#x77;&#x35;&#56;&#55;&#x36;&#64;&#103;&#109;&#x61;&#x69;&#x6C;&#46;&#99;&#111;&#109;</a></li>
+<li>Reply-to: Matthew Fioravante <a href="&#109;&#x61;i&#108;t&#111;:f&#x6D;&#97;&#116;&#116;&#104;&#x65;&#x77;5&#56;&#x37;&#x36;&#64;&#x67;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#x6F;&#109;">f&#x6D;&#97;&#116;&#116;&#104;&#x65;&#x77;5&#56;&#x37;&#x36;&#64;&#x67;&#x6D;&#97;&#x69;&#x6C;&#x2E;&#99;&#x6F;&#109;</a></li>
 </ul>
 
 <h1>Introduction</h1>
@@ -274,6 +274,7 @@ The next example shows the possibilities.</p>
 <pre><code>class Foo {
   public:
     int pub1();
+    int pub2();
 
     int pubx();
     int puby();
@@ -288,13 +289,13 @@ The next example shows the possibilities.</p>
 //In this case, the effect is the same as declaring it within the class
 //definition. Using an extension method here instead of declaring in the
 //class definition is merely a stylistic choice.
-Foo::_priv2();
+private int Foo::_priv2();
 
 //pub2() is inlined and calls _priv1() and _priv2(), so we need to see
 //both of them at this point. This can be accomplished by including them
 //within the class definition or declaring an extension method as shown
 //by the examples of _priv1() and _priv2().
-inline int pub2() { return _priv1() + _priv2(); }
+inline int Foo::pub2() { return _priv1() + _priv2(); }
 </code></pre>
 
 <p>foo_impl.hh (private header file)</p>
@@ -664,8 +665,8 @@ struct X::XHelper::XHelper2 {
 };
 
 void X::doWork() {
-  XHelper::doWorkHelper(x);
-  XHelper::XHelper2::doMoreWorkHelper(x);
+  XHelper::doWorkHelper(this);
+  XHelper::XHelper2::doMoreWorkHelper(this);
 }
 </code></pre>
 

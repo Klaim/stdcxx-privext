@@ -275,6 +275,7 @@ foo.hh (public header file, exposed to library users)
     class Foo {
       public:
         int pub1();
+        int pub2();
 
         int pubx();
         int puby();
@@ -289,13 +290,13 @@ foo.hh (public header file, exposed to library users)
     //In this case, the effect is the same as declaring it within the class
     //definition. Using an extension method here instead of declaring in the
     //class definition is merely a stylistic choice.
-    Foo::_priv2();
+    private int Foo::_priv2();
 
     //pub2() is inlined and calls _priv1() and _priv2(), so we need to see
     //both of them at this point. This can be accomplished by including them
     //within the class definition or declaring an extension method as shown
     //by the examples of _priv1() and _priv2().
-    inline int pub2() { return _priv1() + _priv2(); }
+    inline int Foo::pub2() { return _priv1() + _priv2(); }
 
 foo\_impl.hh (private header file)
 
@@ -658,8 +659,8 @@ Private implementation:
     };
 
     void X::doWork() {
-      XHelper::doWorkHelper(x);
-      XHelper::XHelper2::doMoreWorkHelper(x);
+      XHelper::doWorkHelper(this);
+      XHelper::XHelper2::doMoreWorkHelper(this);
     }
 
 Pratically, this achieves most of the benefits of PEM, but it has some drawbacks:
