@@ -659,8 +659,8 @@ Private implementation:
     };
 
     void X::doWork() {
-      XHelper::doWorkHelper(this);
-      XHelper::XHelper2::doMoreWorkHelper(this);
+      XHelper::doWorkHelper(*this);
+      XHelper::XHelper2::doMoreWorkHelper(*this);
     }
 
 Pratically, this achieves most of the benefits of PEM, but it has some drawbacks:
